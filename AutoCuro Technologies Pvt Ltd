@@ -1,0 +1,63 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import networkx as nx
+import random
+BIN_WIDTH = 80
+BIN_HEIGHT = 40
+rectangles = [[20, 10], [20, 10], [10, 5], [15, 10], [12, 6], [8, 4], [10, 8], [12, 7], [14, 9] ]
+positions = [None] * len(rectangles)
+def check_overlap(pos, rect, others):
+    """Check if the rectangle overlaps with others."""
+    x, y, w, h = pos[0], pos[1], rect[0], rect[1]
+    for ox, oy, ow, oh in others:
+        if not (x + w < ox or x > ox + ow or y + h < oy or y > oy + oh):
+            return True
+    return False
+  def plot_bin(bin_width, bin_height, rects, rect_positions):
+    """Visualize the bin and rectangles."""
+    plt.figure(figsize=(10, 6))
+    plt.xlim(0, bin_width)
+    plt.ylim(0, bin_height)
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.gca().invert_yaxis()
+
+    for i, (rect, pos) in enumerate(zip(rects, rect_positions)):
+        if pos:
+            x, y = pos
+            w, h = rect
+            plt.gca().add_patch(plt.Rectangle((x, y), w, h, edgecolor="black", facecolor=np.random.rand(3,), fill=True, label=f'Rect {i+1}'))
+            plt.text(x + w / 2, y + h / 2, str(i + 1), ha="center", va="center", color="white")
+    
+    plt.title("Bin with Optimally Placed Rectangles")
+    plt.xlabel("Width")
+    plt.ylabel("Height")
+    plt.legend()
+    plt.show()
+  positions[0] = (0, 0)  # Top-left corner
+positions[1] = (0, BIN_HEIGHT - rectangles[1][1])  # Bottom-left corner
+
+# Define adjacency (proximity constraints) as a graph
+G = nx.Graph()
+for i in range(len(rectangles)):
+    G.add_node(i, width=rectangles[i][0], height=rectangles[i][1])
+
+# Add constraints
+constraints = [
+    (2, [3, 4, 8]),  # Rect 3 near 4, 5, 9
+    (6, [1, 5])      # Rect 7 near 6 and 2]
+for node, neighbors in constraints:
+    for neighbor in neighbors:
+        G.add_edge(node, neighbor)
+          occupied = [positions[i] for i in range(len(rectangles)) if positions[i]]
+for i, rect in enumerate(rectangles):
+    if positions[i] is None:
+        while True:
+            x, y = random.randint(0, BIN_WIDTH - rect[0]), random.randint(0, BIN_HEIGHT - rect[1])
+            if not check_overlap((x, y), rect, occupied):
+                positions[i] = (x, y)
+                occupied.append((x, y, rect[0], rect[1]))
+                break
+
+# Plot result
+plot_bin(BIN_WIDTH, BIN_HEIGHT, rectangles, positions)
+
