@@ -1,0 +1,251 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "bec35956",
+   "metadata": {
+    "_cell_guid": "b1076dfc-b9ad-4769-8c92-a6c4dae69d19",
+    "_uuid": "8f2839f25d086af736a60e9eeb907d3b93b6e0e5",
+    "execution": {
+     "iopub.execute_input": "2025-04-23T09:31:06.799855Z",
+     "iopub.status.busy": "2025-04-23T09:31:06.798941Z",
+     "iopub.status.idle": "2025-04-23T09:31:08.546750Z",
+     "shell.execute_reply": "2025-04-23T09:31:08.545650Z"
+    },
+    "papermill": {
+     "duration": 1.753089,
+     "end_time": "2025-04-23T09:31:08.548314",
+     "exception": false,
+     "start_time": "2025-04-23T09:31:06.795225",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "/kaggle/input/customer-personality-analysis/marketing_campaign.csv\n"
+     ]
+    }
+   ],
+   "source": [
+    "# This Python 3 environment comes with many helpful analytics libraries installed\n",
+    "# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python\n",
+    "# For example, here's several helpful packages to load\n",
+    "\n",
+    "import numpy as np # linear algebra\n",
+    "import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)\n",
+    "\n",
+    "# Input data files are available in the read-only \"../input/\" directory\n",
+    "# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory\n",
+    "\n",
+    "import os\n",
+    "for dirname, _, filenames in os.walk('/kaggle/input'):\n",
+    "    for filename in filenames:\n",
+    "        print(os.path.join(dirname, filename))\n",
+    "\n",
+    "# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using \"Save & Run All\" \n",
+    "# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "a3ac95bf",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T09:31:08.553819Z",
+     "iopub.status.busy": "2025-04-23T09:31:08.553405Z",
+     "iopub.status.idle": "2025-04-23T09:31:08.557692Z",
+     "shell.execute_reply": "2025-04-23T09:31:08.556835Z"
+    },
+    "papermill": {
+     "duration": 0.008238,
+     "end_time": "2025-04-23T09:31:08.558997",
+     "exception": false,
+     "start_time": "2025-04-23T09:31:08.550759",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "from pathlib import Path"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "a2af97ec",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T09:31:08.563579Z",
+     "iopub.status.busy": "2025-04-23T09:31:08.563317Z",
+     "iopub.status.idle": "2025-04-23T09:31:08.624380Z",
+     "shell.execute_reply": "2025-04-23T09:31:08.623641Z"
+    },
+    "papermill": {
+     "duration": 0.065113,
+     "end_time": "2025-04-23T09:31:08.625981",
+     "exception": false,
+     "start_time": "2025-04-23T09:31:08.560868",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "dtypes = {\n",
+    "    'ID': 'int32', 'Year_Birth': 'int16', 'Education': 'category',\n",
+    "    'Marital_Status': 'category', 'Income': 'float32',\n",
+    "    'Kidhome': 'int8', 'Teenhome': 'int8'\n",
+    "}\n",
+    "df = pd.read_csv('/kaggle/input/customer-personality-analysis/marketing_campaign.csv', \n",
+    "                 sep='\\t', dtype=dtypes, parse_dates=['Dt_Customer'], dayfirst=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "d2b05860",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T09:31:08.630857Z",
+     "iopub.status.busy": "2025-04-23T09:31:08.630594Z",
+     "iopub.status.idle": "2025-04-23T09:31:08.674102Z",
+     "shell.execute_reply": "2025-04-23T09:31:08.673424Z"
+    },
+    "papermill": {
+     "duration": 0.047613,
+     "end_time": "2025-04-23T09:31:08.675636",
+     "exception": false,
+     "start_time": "2025-04-23T09:31:08.628023",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df = (df\n",
+    "      .assign(\n",
+    "          Age=lambda x: pd.Timestamp.now().year - x['Year_Birth'],\n",
+    "          Total_Children=lambda x: x['Kidhome'] + x['Teenhome'],\n",
+    "          Is_Partner=lambda x: x['Marital_Status'].isin(['Married', 'Together']).astype('int8'),\n",
+    "          Education_Level=lambda x: x['Education'].map({\n",
+    "              'Basic': 1, '2n Cycle': 2, 'Graduation': 3, \n",
+    "              'Master': 4, 'PhD': 5}).astype('int8'),\n",
+    "          Income_Group=lambda x: pd.cut(x['Income'], bins=[0, 30000, 70000, 150000, np.inf],\n",
+    "                                      labels=['Low', 'Medium', 'High', 'Elite'])\n",
+    "      )\n",
+    "      .query('18 <= Age <= 100')\n",
+    "      .drop(columns=['Year_Birth'])\n",
+    "      .dropna(subset=['Income'])\n",
+    "      .astype({'Age': 'int8', 'Total_Children': 'int8'})\n",
+    "      .pipe(lambda x: x[~x.duplicated()])\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "bb8d8d57",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T09:31:08.680925Z",
+     "iopub.status.busy": "2025-04-23T09:31:08.680458Z",
+     "iopub.status.idle": "2025-04-23T09:31:08.714419Z",
+     "shell.execute_reply": "2025-04-23T09:31:08.713332Z"
+    },
+    "papermill": {
+     "duration": 0.038353,
+     "end_time": "2025-04-23T09:31:08.716027",
+     "exception": false,
+     "start_time": "2025-04-23T09:31:08.677674",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "for col in df.select_dtypes(['object', 'category']):\n",
+    "    df[col] = df[col].astype('category')\n",
+    "\n",
+    "# Save processed data\n",
+    "output_path = Path('processed_data')\n",
+    "output_path.mkdir(exist_ok=True)\n",
+    "df.to_csv(output_path/'customer_analytics_ready.csv', index=False, \n",
+    "          compression='gzip' if len(df) > 1e6 else None)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "36f2268a",
+   "metadata": {
+    "papermill": {
+     "duration": 0.001575,
+     "end_time": "2025-04-23T09:31:08.719670",
+     "exception": false,
+     "start_time": "2025-04-23T09:31:08.718095",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kaggle": {
+   "accelerator": "none",
+   "dataSources": [
+    {
+     "datasetId": 1546318,
+     "sourceId": 2549419,
+     "sourceType": "datasetVersion"
+    }
+   ],
+   "dockerImageVersionId": 31012,
+   "isGpuEnabled": false,
+   "isInternetEnabled": true,
+   "language": "python",
+   "sourceType": "notebook"
+  },
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.11"
+  },
+  "papermill": {
+   "default_parameters": {},
+   "duration": 6.990279,
+   "end_time": "2025-04-23T09:31:09.138969",
+   "environment_variables": {},
+   "exception": null,
+   "input_path": "__notebook__.ipynb",
+   "output_path": "__notebook__.ipynb",
+   "parameters": {},
+   "start_time": "2025-04-23T09:31:02.148690",
+   "version": "2.6.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
